@@ -1,3 +1,2 @@
 com/alex_mahao/multidex/MainActivity.class
 com/alex_mahao/multidex/MyApp.class
-sss
