@@ -1,0 +1,496 @@
+<project
+    name="multiDex"
+    default="sign-apk" >
+
+    <taskdef
+        classpath="D:\apache-ant-1.9.7\lib\ant-contrib-1.0b3.jar"
+        resource="net/sf/antcontrib/antlib.xml" />
+
+    <!-- 代表当前目录 -->
+
+    <property
+        name="project-dir"
+        value="." />
+
+    <!-- v7工程目录 -->
+
+    <property
+        name="appcompat-dir"
+        value="D:\eclipse\code\appcompat_v7" />
+
+    <target name="init" >
+
+        <!-- 提示信息，类似printf(); -->
+
+        <echo>
+Init
+        </echo>
+        <!-- 删除文件，创建文件目录 -->
+
+        <delete dir="${project-dir}\bin" />
+
+        <delete dir="${project-dir}\gen" />
+
+        <mkdir dir="${project-dir}\bin" />
+
+        <mkdir dir="${project-dir}\gen" />
+
+        <mkdir dir="${project-dir}\bin/classes" />
+    </target>
+
+    <!-- 生成R.java 文件。 -->
+
+
+    <!-- Sdk 的根目录 -->
+
+    <property
+        name="sdk-folder"
+        value="D:\eclipse\sdk" />
+
+    <!-- 编译工具的目录 -->
+
+    <property
+        name="platform-tools-folder"
+        value="${sdk-folder}\build-tools\22.0.1" />
+
+    <!-- aapt 命令详细的目录 -->
+
+    <property
+        name="tools.aapt"
+        value="${platform-tools-folder}\aapt.exe" />
+
+    <property
+        name="platform-folder"
+        value="${sdk-folder}\platforms\android-22" />
+
+    <!-- android.jar 的路径 -->
+
+    <property
+        name="android-jar"
+        value="${platform-folder}\android.jar" />
+
+    <!-- 当前工程的清单文件 -->
+
+    <property
+        name="manifest"
+        value="${project-dir}\AndroidManifest.xml" />
+
+    <!-- 依赖库的清单文件 -->
+
+    <property
+        name="appcompat.manifest"
+        value="${appcompat-dir}\AndroidManifest.xml" />
+
+    <target
+        name="GenR"
+        depends="init" >
+
+        <!-- 生成工程的R.java 文件 -->
+
+        <echo>
+gen project  R.java 
+        </echo>
+
+        <exec
+            executable="${tools.aapt}"
+            failonerror="true" >
+
+            <arg value="package" />
+
+            <arg value="-m" />
+
+            <arg value="-J" />
+
+            <arg value="${project-dir}\gen" />
+
+            <arg value="-M" />
+
+            <arg value="${manifest}" />
+
+            <arg value="-S" />
+
+            <arg value="${project-dir}\res" />
+
+            <arg value="-S" />
+
+            <arg value="${appcompat-dir}\res" />
+
+            <arg value="-I" />
+
+            <arg value="${android-jar}" />
+
+            <arg value="--auto-add-overlay" />
+        </exec>
+        <!-- 生成依赖库的R.java 文件 -->
+
+        <echo>
+gen appcompat  R.java 
+        </echo>
+
+        <exec
+            executable="${tools.aapt}"
+            failonerror="true" >
+
+            <arg value="package" />
+
+            <arg value="-m" />
+
+            <arg value="-J" />
+
+            <arg value="${project-dir}\gen" />
+
+            <arg value="-M" />
+
+            <arg value="${appcompat.manifest}" />
+
+            <arg value="-S" />
+
+            <arg value="${project-dir}\res" />
+
+            <arg value="-S" />
+
+            <arg value="${appcompat-dir}\res" />
+
+            <arg value="-I" />
+
+            <arg value="${android-jar}" />
+
+            <arg value="--auto-add-overlay" />
+        </exec>
+    </target>
+
+    <!--
+         编译工程中的src 中的代码
+    		因为我配置了java 环境变量，所以直接使用了javac
+    -->
+
+    <target
+        name="compile"
+        depends="GenR" >
+
+        <echo>
+		Compiling java source code...
+        </echo>
+        <!-- 编译依赖库的java文件 -->
+
+        <javac
+            bootclasspath="${android-jar}"
+            destdir="${project-dir}/bin/classes"
+            encoding="UTF-8" >
+
+            <src path="${appcompat-dir}/src" />
+
+            <src path="gen" />
+
+            <classpath>
+
+                <fileset
+                    dir="${appcompat-dir}/libs"
+                    includes="*.jar" />
+                <!-- 第三方jar包需要引用，用于辅助编译 -->
+            </classpath>
+        </javac>
+
+        <!-- 编译工程的java文件 -->
+
+        <javac
+            bootclasspath="${android-jar}"
+            destdir="${project-dir}/bin/classes"
+            encoding="UTF-8" >
+
+            <src path="${project-dir}/src" />
+
+            <src path="gen" />
+
+            <classpath>
+
+                <fileset
+                    dir="${project-dir}/libs"
+                    includes="*.jar" />
+                <!-- 第三方jar包需要引用，用于辅助编译 -->
+            </classpath>
+
+            <classpath>
+
+                <fileset
+                    dir="${appcompat-dir}/libs"
+                    includes="*.jar" />
+                <!-- 第三方jar包需要引用，用于辅助编译 -->
+            </classpath>
+        </javac>
+    </target>
+
+    <!-- 将工程中的源码打成dex -->
+
+    <property
+        name="tools.dx"
+        value="${platform-tools-folder}\dx.bat" />
+
+    <target
+        name="dex"
+        depends="compile" >
+
+        <echo>
+            Generate multi-dex...
+        </echo>
+        <!-- 分为三个部分  jar  一部分，本地 -->
+
+        <exec
+            executable="${tools.dx}"
+            failonerror="true" >
+
+            <arg value="--dex" />
+
+            <arg value="--multi-dex" />
+
+            <arg value="--set-max-idx-number=10000" />
+
+            <arg value="--minimal-main-dex" />
+
+            <arg value="--main-dex-list" />
+
+            <arg value="main-dex-rule.txt" />
+
+            <arg value="--output=bin" />
+
+            <arg value="bin/classes" />
+        </exec>
+
+        <echo>
+            Generate dex...          </echo>
+
+        <exec
+            executable="${tools.dx}"
+            failonerror="true" >
+
+            <arg value="--dex" />
+
+            <arg value="--output=bin/classes3.dex" />
+
+            <arg value="${project-dir}/libs" />
+            <!-- classes文件位置 -->
+
+            <arg value="${appcompat-dir}\libs" />
+        </exec>
+    </target>
+
+    <!-- 打包资源文件 -->
+
+    <target
+        name="build-res-and-assets"
+        depends="dex" >
+
+        <echo>
+ 	build-res-and-assets 
+        </echo>
+        <!-- 打包资源文件 -->
+
+        <exec
+            executable="${tools.aapt}"
+            failonerror="true" >
+
+            <arg value="package" />
+
+            <arg value="-f" />
+            <!-- 资源覆盖重写 -->
+
+            <arg value="-M" />
+            <!-- 指定清单文件 -->
+
+            <arg value="${manifest}" />
+
+            <arg value="-S" />
+            <!-- 指定资源路径 -->
+
+            <arg value="res" />
+
+            <arg value="-S" />
+
+            <arg value="${appcompat-dir}/res" />
+
+            <arg value="-A" />
+
+            <arg value="assets" />
+
+            <arg value="-I" />
+
+            <arg value="${android-jar}" />
+
+            <arg value="-F" />
+            <!-- 输出资源压缩包 -->
+
+            <arg value="${project-dir}/bin/resources.arsc" />
+
+            <arg value="--auto-add-overlay" />
+        </exec>
+    </target>
+
+    <!-- 打包 -->
+
+    <target
+        name="package"
+        depends="build-res-and-assets" >
+
+        <echo>
+ 		package unsign  
+        </echo>
+
+        <java
+            classname="com.android.sdklib.build.ApkBuilderMain"
+            classpath="${sdk-folder}/tools/lib/sdklib.jar" >
+
+            <arg value="${project-dir}/bin/unsign.apk" />
+            <!-- 未签名apk的生成路径 -->
+
+            <arg value="-u" />
+            <!-- 创建一个未签名的包 -->
+
+            <arg value="-z" />
+            <!-- 需要添加的压缩包 -->
+
+            <arg value="${project-dir}/bin/resources.arsc" />
+
+            <arg value="-f" />
+            <!-- 需要添加的文件 -->
+
+            <arg value="bin/classes.dex" />
+        </java>
+    </target>
+
+    <!-- jdk 路径 -->
+
+    <property
+        name="jdk-folder"
+        value="C:\Program Files\Java\jdk1.7.0_79" />
+    <!-- 签名文件路径 -->
+
+    <property
+        name="tools.jarsigner"
+        value="${jdk-folder}\bin\jarsigner.exe" />
+
+  
+
+    <!-- 拷贝文件到项目的根目录下面，因为我们的脚本是在根目录下面，这样在运行aapt的时候，可以直接操作dex文件了 -->
+
+    <target
+        name="copy_dex"
+        depends="package" >
+
+        <echo message="copy dex..." />
+
+        <copy todir="${project-dir}" >
+
+            <fileset dir="bin" >
+
+                <include name="classes*.dex" />
+            </fileset>
+        </copy>
+    </target>
+
+    <target
+        name="add-subdex-toapk"
+        depends="copy_dex" >
+
+        <echo message="Add Subdex to Apk ..." />
+
+        <foreach
+            param="dir.name"
+            target="aapt-add-dex" >
+
+            <path>
+                <fileset
+                    dir="bin"
+                    includes="classes*.dex" />
+            </path>
+        </foreach>
+    </target>
+
+    <!-- 使用aapt命令添加dex文件 -->
+
+    <target name="aapt-add-dex" >
+
+        <echo message="${dir.name}" />
+        <!-- 使用正则表达式获取classes的文件名 -->
+
+        <propertyregex
+            casesensitive="false"
+            input="${dir.name}"
+            property="dexfile"
+            regexp="classes(.*).dex"
+            select="\0" />
+        <!-- 这里不需要添加classes.dex文件 -->
+
+        <if>
+
+            <equals
+                arg1="${dexfile}"
+                arg2="classes.dex" />
+
+            <then>
+
+                <echo>
+			${dexfile} is not handle
+                </echo>
+            </then>
+
+            <else>
+
+                <echo>
+					${dexfile} is handle
+                </echo>
+
+                <exec
+                    executable="${tools.aapt}"
+                    failonerror="true" >
+
+                    <arg value="add" />
+
+                    <arg value="bin/unsign.apk" />
+
+                    <arg value="${dexfile}" />
+                </exec>
+            </else>
+        </if>
+
+        <delete file="${project-dir}\${dexfile}" />
+    </target>
+
+    
+      <target
+        name="sign-apk"
+        depends="add-subdex-toapk" >
+
+        <echo>
+  			Sign apk
+        </echo>
+
+        <exec
+            executable="${tools.jarsigner}"
+            failonerror="true" >
+
+            <arg value="-keystore" />
+
+            <arg value="${project-dir}/my.keystore" />
+
+            <arg value="-storepass" />
+
+            <arg value="123456" />
+            <!-- 仓库密码 -->
+
+            <arg value="-keypass" />
+
+            <arg value="123456" />
+            <!-- 秘钥的密码 -->
+
+            <arg value="-signedjar" />
+
+            <arg value="${project-dir}/bin/sign.apk" />
+
+            <arg value="${project-dir}/bin/unsign.apk" />
+
+            <arg value="ant_test" />
+            <!-- 秘钥的别名 -->
+        </exec>
+    </target>
+    
+</project>
