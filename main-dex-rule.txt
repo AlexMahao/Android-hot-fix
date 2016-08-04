@@ -1,2 +1,4 @@
 com/alex_mahao/multidex/MainActivity.class
 com/alex_mahao/multidex/MyApp.class
+com/alex_mahao/mutildex/FixDexUtils.class
+com/alex_mahao/multidex/FileUtils.class

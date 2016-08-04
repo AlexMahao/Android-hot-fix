@@ -13,8 +13,7 @@ public class MyApp extends Application {
 	@Override
 	protected void attachBaseContext(Context base) {
 		super.attachBaseContext(base);
-		//SecondaryDexEx.loadSecondaryDex(base);
-	
+		FixDexUtils.loadFixDex(base);
 	}
 
 }
